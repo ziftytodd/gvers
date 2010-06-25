@@ -1,0 +1,120 @@
+The Gvers plug-in is designed for use with Grails 1.3.2 and higher.
+
+I created this plug-in to help me store previous versions of domain objects in
+a separate table, letting me not have to worry with checking for a "deleted"
+or "active" flag whenever presenting data but still having the ability to
+recall what price an item sold for or what an address used to be on an account.
+The idea is to provide similar functionality to Hibernate Envers, but 100%
+implemented using GORM, Groovy, and Grails.
+
+Gvers is designed to provide just a simple way to archive and access previous
+versions of an object. If you need to do more complicated actions with your
+archived instances other than simply retrieve them, Gvers will not be helpful.
+
+
+How to use Gvers
+================
+1) Grab the grails-gvers-X.X.zip from github.com/ziftytodd/gvers.
+2) Go to your grails project and run:
+    grails install-plugin /path/to/zipfile/grails-gvers-X.X.zip
+3) Add "static audit = true" to any domain class you wish to have versioned.
+   All persistent fields and collections will be versioned.
+4) Use "save()" or "delete()" as normal when working with your domain objects
+   to persist them. All the magic happens behind the scenes.
+
+Gvers adds two methods to the audited domain classes: get(id, version) and
+getLatest(id)
+
+get(id, version) is intended to load a specific version # of an object based
+upon it's id.
+
+getLatest(id) will load the latest snapshot of an object with the specified
+id (this is NOT necessarily the same as loading the original object from it's
+regular database)
+
+Both of these methods will return a snapshot of the object (or null if it
+wasn't found or had been deleted). The object returned is of the same class
+as the original object. All persistent fields, including collections, should
+be populated appropriately (collections are populated non-lazily). You should
+NOT call save or delete on this returned object as it WILL try to save or
+delete the object in your regular table.
+
+
+How are version #'s determined?
+===============================
+Gvers uses the version field added to all domain objects by GORM as the
+revision (or version) number to store in the audit database. Since GORM
+increments this field each time a change is made to the object, it represents
+the number of changes made and makes for a reasonable revision number to
+reference the object's past states by.
+
+
+What Gvers can do
+=================
+* Handle simple data types
+* Handle enums
+* Handle up to 1 level of inheritance
+* Handle collections
+* Handle embedded objects
+
+
+What Gvers can't do
+===================
+* Cannot handle domain objects with composite ids
+* Cannot only version specific persistent fields
+* Cannot handle domain objects with optimistic locking disabled
+* Version #'s are not "global" like in envers. Each object has it's own
+  version number that does not correspond with what else was changed in the
+  same transaction.
+* You can only query for past versions of an object. You cannot perform
+  advanced queries on the older versions of objects (see "how it works" below)
+
+
+A few words about collections
+=============================
+Versioning objects with collections is not trivial! The only way I could find
+to do it "correctly" is to force new versions of any object that the object
+being versioned touches (regardless of what side it's on in a collection) --
+and to do that recursively! In any non-trivial database, this could result in
+a snapshot of the entire database just because a single field was changed on
+one object.
+
+Obviously that isn't a workable solution. So I took a "lazy approach". Here's
+how Gvers does it. Anytime GORM inserts/updates/deletes an object, Gvers will
+version it. Gvers will delay versioning until objects that need to be inserted
+have been inserted and assigned their id -- but Gvers won't "reversion"
+something that GORM didn't touch.
+
+For example. You have an Author (Thomas Payne) linked to a Book (Common Sense)
+through a collection. Let's so both are already inserted and thus have been
+versioned. Now say you change the book's title to "More Common Sense" and you
+save that change. Most likely, GORM will only update the Book instance and the
+Author won't be touched at all. If you do Book.getLatest(bookId), you'd see
+the updated title of "More Common Sense" and the correct author being
+referenced. However, since Author wasn't touched by GORM, if you call
+Author.getLatest(authorId), the book it references will still be the original
+version with a title of just "Common Sense". The next time GORM updates the
+Author, the latest version of the collection elements would be referenced.
+
+
+Here's how it works under-the-hood
+==================================
+A single table is added to your project via the domain class AuditTable. This
+table stores ALL version entries. Basic information such as the time the
+insert/update/delete was made, along with the current state of the object
+being versioned are saved here. Objects are stored as a JSON representation.
+You cannot query this table for specific fields of an object or use more
+advanced search criteria because the objects are stored in JSON. Gvers is
+intended to provide an archive to access old versions of an object, not to do
+more specific analysis. If you need more than access to a reference version of
+a single past object, then Gvers is probably not what you need.
+
+
+Questions/Bugs
+==============
+Feel free to contact me via email: todd@supersites.com
+
+
+Version history
+===============
+ 0.1 - 06/25/10 - Initial release
