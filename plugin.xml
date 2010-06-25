@@ -1,0 +1,28 @@
+<plugin name='gvers' version='0.1' grailsVersion='1.3.2 &gt; *'>
+  <author>Todd Miller</author>
+  <authorEmail>todd@supersites.com</authorEmail>
+  <title>Domain auditing similar to envers, implemented totally via GORM/grails</title>
+  <description>\
+This plug-in will create a table and store changes (inserts, updates, and deletes) made to any
+domain object in your project that has "static audit = true" defined. It supports simple data
+types, collections, enums, and one-level of inheritence. Regardless of how many classes are
+audited, all audit data is stored in a single table. Use your objects as normal, using .save() or .delete().
+The plug-in adds two additional methods to the audited classes, .get(id, version) to retrieve
+a specific version of an object, and .getLatest(id) to get the latest version stored in the audit table
+of an object. The version number of an object corresponds to the version field added to all domain objects
+by GORM for optimistic locking.
+
+Audit entries store the time that the change was made, as well as what type of change it was (insert,
+update, or delete).
+</description>
+  <documentation>http://grails.org/plugin/gvers</documentation>
+  <resources>
+    <resource>BuildConfig</resource>
+    <resource>Config</resource>
+    <resource>DataSource</resource>
+    <resource>UrlMappings</resource>
+    <resource>com.supersites.AuditTable</resource>
+  </resources>
+  <dependencies />
+  <behavior />
+</plugin>
