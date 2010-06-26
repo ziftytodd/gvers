@@ -70,6 +70,8 @@ update, or delete).
                 }
             }
         }
+
+        AuditTable.grailsApplication = application
     }
 
     def doWithApplicationContext = { applicationContext ->
@@ -93,6 +95,8 @@ update, or delete).
 				value = metaProperty.getProperty(domainClass.clazz);
 			}
 		}
+
+        value
 	}
 
 }

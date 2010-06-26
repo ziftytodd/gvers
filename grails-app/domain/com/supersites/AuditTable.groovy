@@ -12,6 +12,8 @@ import org.codehaus.groovy.grails.web.converters.ConverterUtil;
 import org.codehaus.groovy.grails.web.json.*;
 
 class AuditTable implements Serializable {
+    static def grailsApplication
+
     public static final int INSERT = 0
     public static final int MODIFY = 1
     public static final int DELETE = 2
@@ -209,7 +211,7 @@ class AuditTable implements Serializable {
     static unmarshal = { entry, unmarshalling ->
         def m = JSON.parse(entry.json)
         if ((m == JSONObject.NULL) || (m['class'] == null)) return null
-        Class clazz = Class.forName(m['class'], false, Thread.currentThread().contextClassLoader)
+        Class clazz = grailsApplication.classLoader.loadClass(m['class'])
         GrailsDomainClass domainClass = ConverterUtil.getDomainClass(clazz.name);
 
         // Create an instance of the class
@@ -230,7 +232,7 @@ class AuditTable implements Serializable {
             if (m[property.name]) {
                 if (property.isEnum()) {
                     def embeddedMap = m[property.name]
-                    Class embeddedClazz = Class.forName(embeddedMap['enumType'], false, Thread.currentThread().contextClassLoader)
+                    Class embeddedClazz = grailsApplication.classLoader.loadClass(embeddedMap['enumType'])
                     result."${property.name}" = embeddedClazz."${embeddedMap['name']}"
                 } else if (!property.isAssociation()) {
                     // Restore non-relation property
@@ -245,7 +247,7 @@ class AuditTable implements Serializable {
                         if(property.isEmbedded()) {
                             // Handle embedded class
                             def embeddedMap = m[property.name]
-                            Class embeddedClazz = Class.forName(embeddedMap['class'], false, Thread.currentThread().contextClassLoader)
+                            Class embeddedClazz = grailsApplication.classLoader.loadClass(embeddedMap['class'])
                             def embedded = embeddedClazz.newInstance()
                             result."${property.name}" = AuditTable.unmarshalInstance(embedded, embeddedMap, property.getComponent().getPersistentProperties(), unmarshalling)
                         } else if (m[property.name] instanceof JSONArray) {
