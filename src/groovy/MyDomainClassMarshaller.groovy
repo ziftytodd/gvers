@@ -22,7 +22,6 @@ import org.springframework.beans.BeanWrapperImpl;
  * To change this template use File | Settings | File Templates.
  */
 public class MyDomainClassMarshaller implements ObjectMarshaller<JSON> {
-
     private boolean includeVersion = false;
     private ProxyHandler proxyHandler;
 
@@ -201,6 +200,33 @@ public class MyDomainClassMarshaller implements ObjectMarshaller<JSON> {
         }
 
         [ dependsOn, references ]
+    }
+
+    private isDirty(obj) {
+        def session = AuditTable.sessionFactory.currentSession
+        def entry = findEntityEntry(obj, session)
+        // Added the || (!entry.loadedState) because .findDirty below would throw a nullpointerexception when .loadedState was null
+        if ((!entry) || (!entry.loadedState)) {
+            return false
+        }
+
+        Object[] values = entry.persister.getPropertyValues(obj, session.entityMode)
+        def dirtyProperties = entry.persister.findDirty(values, entry.loadedState, obj, session)
+        return dirtyProperties != null
+    }
+
+
+    private static findEntityEntry(instance, session, boolean forDirtyCheck = true) {
+        def entry = session.persistenceContext.getEntry(instance)
+        if (!entry) {
+            return null
+        }
+
+        if (forDirtyCheck && !entry.requiresDirtyCheck(instance) && entry.loadedState) {
+            return null
+        }
+
+        entry
     }
 
 }

@@ -74,6 +74,18 @@ class IntegrationBookTestsTests extends GrailsUnitTestCase {
         AuditTable.list().each {
             println it
         }
-        
+
+        sessionFactory.currentSession.clear()
+        author2 = JAuthor.get(author2.id)
+        book = JBook.get(book.id)
+        book.title = "Common Common Sense"
+        author2.firstName = "George"
+        book.save(flush:true)
+        ab = JBook.getLatest(book.id)
+        println " *** Changed book title and George's name ab=${ab}"
+        AuditTable.list().each {
+            println it
+        }
+
     }
 }

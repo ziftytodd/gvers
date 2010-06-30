@@ -31,6 +31,7 @@ class AuditTable implements Serializable {
     static mapping = {
 		version false
 		id composite:['objectClass', 'objectId', 'objectVersion'], generator:'assigned'
+        json type:'text'
     }
 
     String toString() { "${objectClass} ${objectId}-${objectVersion} ${event} ${dateCreated} json=${json}" }
